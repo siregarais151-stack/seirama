@@ -181,10 +181,10 @@ const PROFIL = {
       { id:'gaya', label:'Gaya bahasa panduan', type:'select', options:['Santai dan hormat','Formal dan hormat','Hangat dan meminta tolong (untuk keluarga)'] } ] },
     { title:'Jadwal dan dapur', fields:[
       { id:'jamPulang', label:'Ibu biasanya pulang', type:'select', options:['Sebelum 17.00','Sekitar 17.00-18.00','Sekitar 18.00-19.00','Setelah 19.00'] },
-      { id:'alatDapur', label:'Alat masak yang ada', type:'multi', options:['Kompor','Rice cooker','Kukusan','Blender','Kulkas dengan freezer','Penggorengan'] },
+      { id:'alatDapur', label:'Alat masak yang ada', type:'multi', options:['Rice cooker','Kukusan','Blender','Penggorengan','Air fryer'] },
       { id:'masakART', label:'Kemampuan memasak pengasuh', type:'select', options:['Menu dasar (rebus, tumis, goreng)','Bisa banyak menu','Masih belajar'] } ] }
   ],
-  demo: { nama:'Dina', anak:'Raka', usia:'4 tahun', kelamin:'Laki-laki', alergi:['Telur'], ditolak:'sayur hijau', tidur:'Tidur siang 13.00-15.00, tidur malam 20.30', layar:'Maksimal 30 menit per hari', tantangan:['Susah makan','Minta HP terus'], pengasuh:'ART pulang-pergi', sapaan:'Bu Sari', jamART:'07.00-18.00, istirahat 12.30-13.30', gaya:'Santai dan hormat', jamPulang:'Sekitar 18.00-19.00', alatDapur:['Kompor','Rice cooker'], masakART:'Menu dasar (rebus, tumis, goreng)' },
+  demo: { nama:'Dina', anak:'Raka', usia:'4 tahun', kelamin:'Laki-laki', alergi:['Telur'], ditolak:'sayur hijau', tidur:'Tidur siang 13.00-15.00, tidur malam 20.30', layar:'Maksimal 30 menit per hari', tantangan:['Susah makan','Minta HP terus'], pengasuh:'ART pulang-pergi', sapaan:'Bu Sari', jamART:'07.00-18.00, istirahat 12.30-13.30', gaya:'Santai dan hormat', jamPulang:'Sekitar 18.00-19.00', alatDapur:['Rice cooker','Penggorengan'], masakART:'Menu dasar (rebus, tumis, goreng)' },
   summaryPrompt: 'Dari data profil berikut, tulis ringkasan kondisi keluarga dalam 4-5 baris dengan sapaan hangat memakai nama panggilan Ibu: kekuatan kondisinya, tantangan utamanya, dan satu kalimat arah yang masuk akal untuk minggu ini. Jangan menyalahkan Ibu maupun pengasuh. Jangan mendiagnosis anak dan jangan menjanjikan hasil.',
   headerLine: p => 'Halo, ' + p.nama + ' · ' + p.anak + ' (' + p.usia + ')'
 };
@@ -829,7 +829,7 @@ FEATURES.push({
     const instruksi = async (i, btn) => {
       const d = M().days[i]; if(!d) return; busy(btn, 'Menyusun...'); let o = null;
       try{
-        const t = await callGeminiAPI(KB_LENGKAP + '\nTulis instruksi masak untuk pengasuh (bukan untuk Ibu) untuk makan siang pada hari itu. Jawab HANYA objek JSON dengan kunci: langkah (daftar maksimal 5 langkah, kalimat pendek), porsi (satu kalimat, berlabel perkiraan), simpan (satu kalimat tentang penyimpanan dan pemanasan, berlabel perkiraan), substitusi (daftar 2 kalimat berbentuk Kalau tidak ada X, ganti Y). Hormati alergi di profil dan jangan memakai bahan alergen. Anak usia ' + (P().usia || '1-5 tahun') + '. Sesuaikan tekstur dengan usia anak.', cuplikan() + '\nHari: ' + d.hari + '\nMakan siang: ' + d.siang + '\nAlat masak: ' + ((P().alatDapur || []).join(', ') || 'kompor') + '\nKemampuan memasak pengasuh: ' + (P().masakART || 'menu dasar'), true, [], 'instruksi');
+        const t = await callGeminiAPI(KB_LENGKAP + '\nTulis instruksi masak untuk pengasuh (bukan untuk Ibu) untuk makan siang pada hari itu. Jawab HANYA objek JSON dengan kunci: langkah (daftar maksimal 5 langkah, kalimat pendek), porsi (satu kalimat, berlabel perkiraan), simpan (satu kalimat tentang penyimpanan dan pemanasan, berlabel perkiraan), substitusi (daftar 2 kalimat berbentuk Kalau tidak ada X, ganti Y). Hormati alergi di profil dan jangan memakai bahan alergen. Anak usia ' + (P().usia || '1-5 tahun') + '. Sesuaikan tekstur dengan usia anak.', cuplikan() + '\nHari: ' + d.hari + '\nMakan siang: ' + d.siang + '\nAlat masak: ' + ((P().alatDapur || []).join(', ') || 'alat masak dasar') + '\nKemampuan memasak pengasuh: ' + (P().masakART || 'menu dasar'), true, [], 'instruksi');
         o = parseJSONObj(t);
       }catch(e){}
       if(!o || !Array.isArray(o.langkah) || !o.langkah.length){
@@ -847,7 +847,7 @@ FEATURES.push({
       const b = $('mnBuat'); busy(b, 'Menyusun menu...'); let list = null;
       const bahan = sel().join(', ') || 'bahan umum yang mudah dibeli';
       try{
-        const t = await callGeminiAPI(KB_LENGKAP + '\nSusun menu 14 hari (2 minggu) untuk balita yang dimasak pengasuh di rumah. WAJIB memakai bahan yang dicentang di daftar bahan tersedia sebagai bahan utama (lauk dan sayur); bumbu dasar, minyak, dan garam boleh ditambahkan. Tidak boleh ada menu yang sama dalam 14 hari itu, dan lauk utama tidak boleh diulang dalam minggu yang sama. Sesuaikan tekstur dengan usia anak di profil. Utamakan bahan yang tersedia, jaga waktu masak per hari agar tidak melebihi batas, hindari bahan alergen persis seperti di profil, dan beri variasi tekstur dan warna. Jawab HANYA daftar JSON berisi 14 objek berurutan dengan kunci: hari (Senin sampai Minggu, lalu Senin sampai Minggu lagi), sarapan, siang, camilan, malam, catatan (satu kalimat tips persiapan bahan atau substitusi, boleh kosong). Isi tiap menu cukup nama menunya. Jangan menjanjikan anak pasti mau makan.', cuplikan() + '\n[PERMINTAAN MENU]\nBahan tersedia: ' + bahan + '\nWaktu masak per hari: ' + $('mnWaktu').value + '\nHari persiapan bahan: ' + $('mnBatch').value + '\nAnggaran per minggu (perkiraan): Rp' + (Number($('mnAng').value) * 1000).toLocaleString('id-ID') + '\nAlat masak: ' + ((P().alatDapur || []).join(', ') || 'kompor') + '\nKemampuan memasak pengasuh: ' + (P().masakART || 'menu dasar'), true, [], 'menu');
+        const t = await callGeminiAPI(KB_LENGKAP + '\nSusun menu 14 hari (2 minggu) untuk balita yang dimasak pengasuh di rumah. WAJIB memakai bahan yang dicentang di daftar bahan tersedia sebagai bahan utama (lauk dan sayur); bumbu dasar, minyak, dan garam boleh ditambahkan. Tidak boleh ada menu yang sama dalam 14 hari itu, dan lauk utama tidak boleh diulang dalam minggu yang sama. Sesuaikan tekstur dengan usia anak di profil. Utamakan bahan yang tersedia, jaga waktu masak per hari agar tidak melebihi batas, hindari bahan alergen persis seperti di profil, dan beri variasi tekstur dan warna. Jawab HANYA daftar JSON berisi 14 objek berurutan dengan kunci: hari (Senin sampai Minggu, lalu Senin sampai Minggu lagi), sarapan, siang, camilan, malam, catatan (satu kalimat tips persiapan bahan atau substitusi, boleh kosong). Isi tiap menu cukup nama menunya. Jangan menjanjikan anak pasti mau makan.', cuplikan() + '\n[PERMINTAAN MENU]\nBahan tersedia: ' + bahan + '\nWaktu masak per hari: ' + $('mnWaktu').value + '\nHari persiapan bahan: ' + $('mnBatch').value + '\nAnggaran per minggu (perkiraan): Rp' + (Number($('mnAng').value) * 1000).toLocaleString('id-ID') + '\nAlat masak: ' + ((P().alatDapur || []).join(', ') || 'alat masak dasar') + '\nKemampuan memasak pengasuh: ' + (P().masakART || 'menu dasar'), true, [], 'menu');
         list = parseJSONList(t);
       }catch(e){}
       const valid = Array.isArray(list) && list.length >= 14 && list.every(x => x && x.sarapan && x.siang && x.malam);
@@ -1254,6 +1254,10 @@ FEATURES.push({
   desc:'Pengasuh cukup membalas format laporan di WhatsApp. Bunda tempel balasannya, datanya terbaca otomatis: makan, tidur, waktu layar, kegiatan, dan suasana hati si kecil.',
   done: () => !!(S.data.jurnal && S.data.jurnal.log && S.data.jurnal.log.length),
   html: `
+    <div class="text-xs text-stone-500 px-1">Laporan dari HP pengasuh masuk ke sini otomatis.</div>
+    <div id="jrRingkas" class="hidden card space-y-3"></div>
+    <div id="jrRiwayatBox" class="hidden card space-y-2"><h3 class="font-extrabold">Riwayat laporan</h3><div id="jrRiwayat" class="space-y-2"></div></div>
+    <details class="rounded-3xl border border-cream-300 bg-white p-4"><summary class="font-bold text-sm cursor-pointer text-brand-700">+ Isi manual, atau tempel laporan dari WhatsApp</summary><div class="space-y-3 mt-3">
     <div class="card space-y-3">
       <div class="text-xs font-bold text-stone-500">1. Kirim format laporan ke pengasuh (cukup sekali, bisa dipakai setiap hari)</div>
       <button id="jrFormat" type="button" class="btn btn-soft w-full">Salin format laporan</button>
@@ -1281,8 +1285,7 @@ FEATURES.push({
       <label class="flex items-center gap-2 text-sm font-semibold"><input id="jrStim" type="checkbox"> Kegiatan dari planner stimulasi sudah dilakukan</label>
       <button id="jrSimpan" type="button" class="btn w-full">Simpan laporan</button>
     </div>
-    <div id="jrRingkas" class="hidden card space-y-3"></div>
-    <div id="jrRiwayatBox" class="hidden card space-y-2"><h3 class="font-extrabold">Riwayat laporan</h3><div id="jrRiwayat" class="space-y-2"></div></div>
+    </div></details>
     <button type="button" class="goto btn w-full" data-go="rapor">Lanjut: rapor bulanan</button>`,
   onShow(){ if(this.refresh) this.refresh(); },
   init(){
@@ -1469,6 +1472,10 @@ const SYNC = (() => {
     async get(p){ await api.siap(); if(!pakaiFB) return lsGet(p); const s = await fb.F.getDoc(ref(p)); return s.exists() ? s.data() : null; },
     async merge(p, data){ await api.siap(); if(!pakaiFB) return lsMerge(p, data); await fb.F.setDoc(ref(p), data, { merge:true }); },
     async put(p, data){ await api.siap(); if(!pakaiFB){ const o = all(); o[p] = JSON.parse(JSON.stringify(data)); try{ localStorage.setItem(LS, JSON.stringify(o)); }catch(e){ throw e; } fire(p); return; } await fb.F.setDoc(ref(p), data); },
+    async del(p){ await api.siap(); if(!pakaiFB){ const o = all(); delete o[p]; try{ localStorage.setItem(LS, JSON.stringify(o)); }catch(e){} fire(p); return; } await fb.F.deleteDoc(ref(p)); },
+    async hapusKoleksi(col){ await api.siap();
+      if(!pakaiFB){ const o = all(); Object.keys(o).filter(k => k.indexOf(col + '/') === 0).forEach(k => delete o[k]); try{ localStorage.setItem(LS, JSON.stringify(o)); }catch(e){} return; }
+      const F = fb.F, snap = await F.getDocs(F.collection(fb.db, ...col.split('/'))); await Promise.all(snap.docs.map(d => F.deleteDoc(d.ref))); },
     async hapusSebelum(col, tgl){ await api.siap();
       if(!pakaiFB){ const o = all(); Object.keys(o).filter(k => k.indexOf(col + '/') === 0 && (o[k].tgl || '') < tgl).forEach(k => delete o[k]); try{ localStorage.setItem(LS, JSON.stringify(o)); }catch(e){} return; }
       const F = fb.F, q = F.query(F.collection(fb.db, ...col.split('/')), F.where('tgl', '<', tgl)), snap = await F.getDocs(q);
@@ -1608,7 +1615,7 @@ FEATURES.push({
     const an = () => anakNama(), sp = () => sapaanP();
     const mulaiWatch = () => {
       if(!Z().kode) return; const hi = hariIni();
-      if(kodeAktif !== Z().kode){ if(unF) unF(); unF = SYNC.watch(famPath(), f => { const evLama = JSON.stringify((fam.evaluasi || {})[senin(hariIni())] || {}); fam = f || {}; if(fam.pengasuh && !Z().tersambung){ Z().tersambung = true; save(); renderNav(); } renderSambung(); renderHari(); renderRutin(); notifIbu(hariIni(), HARI_IBU, fam); if(JSON.stringify((fam.evaluasi || {})[senin(hariIni())] || {}) !== evLama){ clearTimeout(evT); evT = setTimeout(renderEval, 800); } }); kodeAktif = Z().kode; }
+      if(kodeAktif !== Z().kode){ if(unF) unF(); unF = SYNC.watch(famPath(), f => { const evLama = JSON.stringify((fam.evaluasi || {})[senin(hariIni())] || {}); fam = f || {}; FAM_IBU = fam; window.dispatchEvent(new Event('seirama-fam')); if(fam.pengasuh && !Z().tersambung){ Z().tersambung = true; save(); renderNav(); } renderSambung(); renderHari(); renderRutin(); notifIbu(hariIni(), HARI_IBU, fam); if(JSON.stringify((fam.evaluasi || {})[senin(hariIni())] || {}) !== evLama){ clearTimeout(evT); evT = setTimeout(renderEval, 800); } }); kodeAktif = Z().kode; }
       if(hariTgl !== hi){ if(unH) unH(); unH = SYNC.watch(hariPath(hi), h => { hari = h || {}; HARI_IBU = hari; if(tarikLaporan(hi, hari, fam)) save(); renderHari(); notifIbu(hi, hari, fam); window.dispatchEvent(new Event('seirama-hari')); clearTimeout(evT); evT = setTimeout(renderEval, 2500); }); hariTgl = hi; }
     };
     const renderSambung = () => {
@@ -1709,7 +1716,7 @@ FEATURES.push({
 function homeExtra(){
   if(S.profile || S.peran === 'pengasuh') return;
   const box = document.createElement('div'); box.className = 'card space-y-2 !border-2 !border-amber-300';
-  box.innerHTML = '<div class="font-extrabold">👋 Saya pengasuh</div><div class="text-sm text-stone-600">Untuk ART, nenek, kakek, atau keluarga yang menjaga si kecil. Masukkan kode sambung 6 huruf dari Ibu.</div><div class="flex gap-2"><input id="pgKode" class="fld !mt-0 uppercase tracking-widest font-bold" maxlength="6" placeholder="Kode dari Ibu"><button id="pgMasuk" type="button" class="btn !py-2 text-sm">Masuk</button></div><p id="pgErr" class="hidden text-xs text-red-600"></p><div class="text-[11px] text-stone-500">Bunda pemilik aplikasi? Mulai dari Profil Keluarga di atas.</div>';
+  box.innerHTML = '<div class="font-extrabold">👋 Saya pengasuh</div><div class="text-sm text-stone-600">Untuk ART, nenek, kakek, atau keluarga yang menjaga si kecil. Masukkan kode sambung 6 huruf dari Ibu.</div><div class="flex gap-2"><input id="pgKode" class="fld !mt-0 uppercase tracking-widest font-bold" maxlength="6" placeholder="Kode dari Ibu"><button id="pgMasuk" type="button" class="btn !py-2 !px-4 text-sm whitespace-nowrap">Masuk</button></div><p id="pgErr" class="hidden text-xs text-red-600"></p><div class="text-[11px] text-stone-500">Bunda pemilik aplikasi? Mulai dari Profil Keluarga di atas.</div>';
   $('tab-home').appendChild(box);
   $('pgMasuk').onclick = async () => { const b = $('pgMasuk'); busy(b, '...'); const k = await SYNC.pakaiSambung($('pgKode').value); idle(b);
     if(!k){ $('pgErr').textContent = 'Kode tidak cocok atau sudah lewat 30 menit. Minta kode baru ke Ibu ya.'; $('pgErr').classList.remove('hidden'); return; }
@@ -1718,11 +1725,11 @@ function homeExtra(){
 function mulaiPengasuh(){
   applyTheme(); renderHdr();
   $('side').classList.add('hidden'); $('side').classList.remove('md:flex'); $('menuBtn').classList.add('hidden');
-  const kode = S.sinkron.kode; let fam = {}, hari = {}, tab = 'hari', hi = hariIni(), unH = null, draftL = null;
+  const kode = S.sinkron.kode; let fam = {}, hari = {}, tab = 'hari', hi = hariIni(), unH = null, draftL = null, draftE = {}, evalBuka = null;
   const info = () => fam.info || {}, anak = () => info().anak || 'si kecil', sapa = () => info().sapaan || 'Pengasuh';
-  $('views').innerHTML = '<section class="space-y-4"><div id="pgHero" class="home-hero rounded-3xl p-5 text-white space-y-2"></div><div id="pgTabs" class="grid grid-cols-5 gap-1 p-1 rounded-2xl bg-white border border-cream-200 sticky top-[68px] z-10"></div><div id="pgBody" class="space-y-3"></div><button id="pgKeluar" type="button" class="text-xs underline text-stone-400">Keluar dari mode pengasuh</button></section>';
+  $('views').innerHTML = '<section class="space-y-4"><div id="pgHero" class="home-hero rounded-3xl p-5 text-white space-y-2"></div><div id="pgTabs" class="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-white border border-cream-200 sticky top-[68px] z-10"></div><div id="pgBody" class="space-y-3"></div><button id="pgKeluar" type="button" class="text-xs underline text-stone-400">Keluar dari mode pengasuh</button></section>';
   $('foot').textContent = '© ' + new Date().getFullYear() + ' Seirama · Mode Pengasuh';
-  const TABS = [['hari','✅','Hari ini'],['lapor','📝','Laporan'],['panduan','📖','Panduan'],['pesan','💬','Pesan'],['eval','🤝','Evaluasi']];
+  const TABS = [['hari','✅','Hari ini'],['pesan','💬','Pesan'],['panduan','📖','Panduan']];
   const renderTabs = () => { const baru = pesanList(hari).filter(m => m.dari === 'ibu' && m.t > (S.pgBaca || 0)).length;
     $('pgTabs').innerHTML = TABS.map(t => '<button type="button" data-t="' + t[0] + '" class="relative rounded-xl py-2 text-[11px] font-bold ' + (tab === t[0] ? 'bg-brand-500 text-white' : 'text-stone-600') + '"><div class="text-lg leading-none">' + t[1] + '</div>' + t[2] + (t[0] === 'pesan' && baru ? '<span class="absolute top-1 right-2 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] leading-4">' + baru + '</span>' : '') + '</button>').join('');
     $('pgTabs').querySelectorAll('button').forEach(b => b.onclick = () => { tab = b.dataset.t; if(tab === 'pesan'){ S.pgBaca = Date.now(); NOTIF.bacaSemua('pg:pesan'); save(); } render(); window.scrollTo({ top:0 }); }); };
@@ -1763,10 +1770,16 @@ function mulaiPengasuh(){
   const vEval = () => { const wk = senin(hi), E = ((fam.evaluasi || {})[wk]) || {};
     return '<div class="card space-y-2"><div class="font-extrabold">Evaluasi minggu ini</div><div class="text-xs text-stone-500">Bukan untuk menilai, tapi supaya Ibu dan ' + esc(sapa()) + ' makin satu irama.</div>' +
       (E.ibuBaik || E.ibuCoba ? '<div class="rounded-2xl bg-cream-50 border border-cream-200 p-3 space-y-1 text-sm"><div class="text-xs font-extrabold text-brand-700">Dari Ibu</div>' + (E.ibuBaik ? '<div><b>Yang sudah baik:</b> ' + esc(E.ibuBaik) + '</div>' : '') + (E.ibuCoba ? '<div><b>Mau dicoba minggu depan:</b> ' + esc(E.ibuCoba) + '</div>' : '') + '</div>' : '<div class="text-sm text-stone-500">Ibu belum menulis evaluasi minggu ini.</div>') +
-      '<label class="lbl">Kendala minggu ini</label><textarea id="pgKendala" rows="2" class="fld" placeholder="Mis. Raka susah tidur siang kalau sudah main HP">' + esc(E.pgKendala || '') + '</textarea><label class="lbl">Usulan untuk Ibu</label><textarea id="pgUsul" rows="2" class="fld" placeholder="Mis. jam layar dipindah ke sore">' + esc(E.pgUsul || '') + '</textarea><button id="pgEval" type="button" class="btn w-full">Kirim ke Ibu</button></div>'; };
+      '<label class="lbl">Kendala minggu ini</label><textarea id="pgKendala" rows="2" class="fld" placeholder="Mis. Raka susah tidur siang kalau sudah main HP">' + esc(draftE.k !== undefined ? draftE.k : (E.pgKendala || '')) + '</textarea><label class="lbl">Usulan untuk Ibu</label><textarea id="pgUsul" rows="2" class="fld" placeholder="Mis. jam layar dipindah ke sore">' + esc(draftE.u !== undefined ? draftE.u : (E.pgUsul || '')) + '</textarea><button id="pgEval" type="button" class="btn w-full">Kirim ke Ibu</button></div>'; };
   const render = () => {
     renderHero(); renderTabs(); const B = $('pgBody');
-    B.innerHTML = tab === 'hari' ? vHari() : tab === 'lapor' ? vLapor() : tab === 'panduan' ? vPanduan() : tab === 'pesan' ? vPesan() : vEval();
+    const E = ((fam.evaluasi || {})[senin(hi)]) || {}, hr = new Date().getDay(), ibuMenunggu = !!(E.ibuT && !E.pgT);
+    if(evalBuka === null) evalBuka = hr === 5 || hr === 6 || hr === 0 || ibuMenunggu;
+    B.innerHTML = tab === 'hari' ? vHari() + '<div id="pgLaporBox">' + vLapor() + '</div><details id="pgEvalDet" class="rounded-3xl"' + (evalBuka ? ' open' : '') + '><summary class="card !p-4 font-extrabold cursor-pointer list-none flex items-center justify-between">🤝 Evaluasi minggu ini' + (ibuMenunggu ? '<span class="text-[11px] font-bold px-2 py-0.5 rounded-full bg-red-500 text-white">Ibu menunggu</span>' : '<span class="text-stone-400 text-sm">' + (evalBuka ? '▲' : '▼') + '</span>') + '</summary><div class="mt-2">' + vEval() + '</div></details>' : tab === 'panduan' ? vPanduan() : vPesan();
+    if($('pgEvalDet')) $('pgEvalDet').ontoggle = () => { evalBuka = $('pgEvalDet').open; };
+    if($('pgCat')) $('pgCat').oninput = () => { draftL.cat = $('pgCat').value; };
+    if($('pgKendala')) $('pgKendala').oninput = () => { draftE.k = $('pgKendala').value; };
+    if($('pgUsul')) $('pgUsul').oninput = () => { draftE.u = $('pgUsul').value; };
     const stNow = id => ((hari.ceklis || {})[id] || {});
     const butuhFoto = id => (tugasHari(fam, hi).find(x => x.id === id) || {}).foto;
     B.querySelectorAll('.pgck').forEach(b => b.onclick = () => { const id = b.dataset.id, ok = stNow(id).st === 'ya';
@@ -1786,10 +1799,12 @@ function mulaiPengasuh(){
   };
   let armed = false;
   $('pgKeluar').onclick = () => { if(!armed){ armed = true; $('pgKeluar').textContent = 'Klik lagi untuk keluar (perlu kode baru dari Ibu untuk masuk lagi)'; setTimeout(() => { armed = false; $('pgKeluar').textContent = 'Keluar dari mode pengasuh'; }, 4000); return; } try{ localStorage.removeItem(KEY); }catch(e){} location.reload(); };
-  const watchHari = () => { if(unH) unH(); unH = SYNC.watch(hariPath(hi, kode), h => { hari = h || {}; notifPengasuh(hi, hari, fam); if(tab !== 'lapor' && tab !== 'eval') render(); else { renderHero(); renderTabs(); } }); };
-  window.pgBukaTab = t => { tab = t; if(t === 'pesan'){ S.pgBaca = Date.now(); NOTIF.bacaSemua('pg:pesan'); save(); } render(); window.scrollTo({ top:0 }); };
+  const sibukKetik = () => { const a = document.activeElement, B = $('pgBody'); return !!(a && B && B.contains(a) && /INPUT|TEXTAREA/.test(a.tagName)); };
+  const watchHari = () => { if(unH) unH(); unH = SYNC.watch(hariPath(hi, kode), h => { hari = h || {}; notifPengasuh(hi, hari, fam); if(!sibukKetik()) render(); else { renderHero(); renderTabs(); } }); };
+  window.pgBukaTab = t => { const ke = t === 'lapor' ? 'pgLaporBox' : t === 'eval' ? 'pgEvalDet' : ''; if(t === 'eval') evalBuka = true; tab = (t === 'lapor' || t === 'eval') ? 'hari' : t; if(tab === 'pesan'){ S.pgBaca = Date.now(); NOTIF.bacaSemua('pg:pesan'); save(); } render();
+    if(ke && $(ke)) setTimeout(() => window.scrollTo({ top:$(ke).getBoundingClientRect().top + window.scrollY - 80, behavior:'smooth' }), 50); else window.scrollTo({ top:0 }); };
   NOTIF.siap();
-  SYNC.watch(famPath(kode), f => { fam = f || {}; notifPengasuh(hi, hari, fam); if(tab !== 'lapor' && tab !== 'eval') render(); else { renderHero(); renderTabs(); } });
+  SYNC.watch(famPath(kode), f => { fam = f || {}; notifPengasuh(hi, hari, fam); if(!sibukKetik()) render(); else { renderHero(); renderTabs(); } });
   watchHari();
   const aktif = () => SYNC.merge(famPath(kode), { pengasuh:{ nama:sapa() === 'Pengasuh' ? '' : sapa(), aktif:Date.now() } }).catch(() => {});
   setTimeout(aktif, 300); setInterval(() => { aktif(); if(hariIni() !== hi){ hi = hariIni(); draftL = null; watchHari(); } }, 5 * 60e3);
@@ -1920,6 +1935,177 @@ renderNav = function(){
   const lencana = (id, n) => { const b = document.querySelector('#nav .nav-btn[data-tab="' + id + '"]'); if(b && n) b.insertAdjacentHTML('beforeend', '<span class="ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-[11px] font-extrabold leading-5 text-center">' + (n > 9 ? '9+' : n) + '</span>'); };
   lencana('pesan', pesanBaru); lencana('bersama', NOTIF.belumKe('bersama'));
 };
+
+/* ===================== Tampilan sederhana: beranda "Hari Ini", menu bawah 4 tombol, Pengaturan ===================== */
+let FAM_IBU = null;   /* null = belum termuat dari server */
+const GRUP = [
+  { id:'home', ic:'🏠', t:'Hari Ini' },
+  { id:'pesan', ic:'💬', t:'Pesan' },
+  { id:'rencana', ic:'📋', t:'Rencana' },
+  { id:'grup-tumbuh', ic:'🌱', t:'Tumbuh' }
+];
+const INDUK = { home:'home', bersama:'home', pesan:'pesan', rencana:'rencana', kartu:'rencana', menu:'rencana', stimulasi:'rencana', 'grup-tumbuh':'grup-tumbuh', tumbuh:'grup-tumbuh', kembang:'grup-tumbuh', jurnal:'grup-tumbuh', rapor:'grup-tumbuh', atur:'atur', profil:'atur' };
+const LABEL_INDUK = { home:'Hari Ini', rencana:'Rencana', 'grup-tumbuh':'Tumbuh Kembang', atur:'Pengaturan' };
+const DESC_PENDEK = {
+  bersama:'Ceklis harian yang dikerjakan pengasuh dari HP-nya, plus jadwal dan evaluasi mingguan.',
+  pesan:'Ngobrol singkat dengan pengasuh.',
+  kartu:'Aturan rumah untuk pengasuh, siap dikirim lewat WhatsApp.',
+  menu:'Menu 2 minggu dari bahan di rumah, aman untuk alergi.',
+  stimulasi:'Ide main 7 hari dari barang di rumah.',
+  tumbuh:'Cek berat dan tinggi badan sesuai standar WHO.',
+  kembang:'Ceklis kemampuan si kecil sesuai usianya.',
+  jurnal:'Grafik waktu layar, tidur, dan makan dari laporan pengasuh.',
+  rapor:'Rangkuman sebulan, siap dibagikan ke Ayah atau dibawa ke posyandu.'
+};
+FEATURES.forEach(f => { if(DESC_PENDEK[f.id]) f.desc = DESC_PENDEK[f.id]; if(f.id === 'jurnal'){ f.title = 'Laporan dan Grafik'; f.label = 'Laporan dan Grafik'; } });
+
+const HUB = {
+  rencana:[ ['bersama','🗓️','Jadwal harian si kecil','Jam dan aktivitas yang jadi ceklis pengasuh','bsRutin'], ['kartu','📝','Panduan untuk pengasuh','Aturan makan, tidur, layar, dan situasi sulit'], ['menu','🍲','Menu 2 minggu','Menu, takaran protein, dan daftar belanja'], ['stimulasi','🎯','Planner stimulasi','Ide main 7 hari, dibagi pengasuh dan Bunda'] ],
+  'grup-tumbuh':[ ['tumbuh','📏','Pertumbuhan','Berat dan tinggi badan (standar WHO)'], ['kembang','🧩','Cek tumbuh kembang','Kemampuan si kecil sesuai usia'], ['jurnal','📒','Laporan dan grafik','Waktu layar, tidur, dan makan'], ['rapor','📋','Rapor bulanan','Rangkuman sebulan'] ]
+};
+const fiturSelesai = id => { const f = FEATURES.find(x => x.id === id); return !!(f && f.done && f.done()); };
+const hubHTML = id => '<div class="grid gap-2">' + HUB[id].map(x => '<button type="button" class="hubgo card !p-4 text-left flex items-center gap-3 hover:!border-brand-500 transition" data-go="' + x[0] + '"' + (x[4] ? ' data-ke="' + x[4] + '"' : '') + '><span class="text-2xl">' + x[1] + '</span><span class="flex-1 min-w-0"><span class="block font-extrabold">' + esc(x[2]) + '</span><span class="block text-xs text-stone-500">' + esc(x[3]) + '</span></span>' + (fiturSelesai(x[0]) ? '<span class="text-[11px] font-extrabold text-green-600">✓</span>' : '') + '<span class="text-stone-300 text-xl">›</span></button>').join('') + '</div>';
+const pasangHub = el => el.querySelectorAll('.hubgo').forEach(b => b.onclick = () => { go(b.dataset.go); if(b.dataset.ke) setTimeout(() => { const t = $(b.dataset.ke); if(t) window.scrollTo({ top:t.getBoundingClientRect().top + window.scrollY - 80, behavior:'smooth' }); }, 350); });
+
+FEATURES.push({ id:'rencana', icon:'📋', label:'Rencana', title:'Rencana', desc:'Atur apa yang dikerjakan pengasuh dan apa yang dimakan si kecil.', html:'<div id="hubRencana"></div>', onShow(){ $('hubRencana').innerHTML = hubHTML('rencana'); pasangHub($('hubRencana')); }, init(){} });
+FEATURES.push({ id:'grup-tumbuh', icon:'🌱', label:'Tumbuh Kembang', title:'Tumbuh Kembang', desc:'Pantau pertumbuhan dan perkembangan si kecil.', html:'<div id="hubTumbuh"></div>', onShow(){ $('hubTumbuh').innerHTML = hubHTML('grup-tumbuh'); pasangHub($('hubTumbuh')); }, init(){} });
+FEATURES.push({
+  id:'atur', icon:'⚙️', label:'Pengaturan', title:'Pengaturan', desc:'Profil, sambungan pengasuh, dan data.',
+  html:'<div id="aturBox" class="space-y-3"></div>',
+  onShow(){ this.render(); },
+  init(){
+    /* --- pasang tampilan sederhana (sekali, saat aplikasi dibuka) --- */
+    const side = $('side'); side.classList.add('hidden'); side.classList.remove('md:flex'); $('menuBtn').classList.add('hidden'); $('hdrUser').classList.add('!hidden');
+    document.querySelector('main').classList.add('pb-28');
+    const atur = document.createElement('button'); atur.type = 'button'; atur.id = 'hdrAtur'; atur.className = 'w-10 h-10 rounded-full bg-cream-100 flex items-center justify-center text-lg flex-none'; atur.setAttribute('aria-label', 'Pengaturan'); atur.textContent = '⚙️'; atur.onclick = () => go('atur');
+    const logo = $('brandLogo'); logo.parentNode.insertBefore(atur, logo);
+    const kembali = document.createElement('div'); kembali.id = 'kembaliBar'; kembali.className = 'hidden mb-3'; $('views').parentNode.insertBefore(kembali, $('views'));
+    const bawah = document.createElement('nav'); bawah.id = 'bawah'; bawah.className = 'fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur border-t border-cream-200'; bawah.style.paddingBottom = 'env(safe-area-inset-bottom)'; document.body.appendChild(bawah);
+    window.addEventListener('seirama-hari', () => { if(current === 'home') renderHome(); });
+    window.addEventListener('seirama-fam', () => { if(current === 'home') renderHome(); });
+    this.render = () => {
+      const p = S.profile || {}, conn = !!(S.sinkron && (S.sinkron.sambung || S.sinkron.tersambung)), pg = (FAM_IBU || {}).pengasuh;
+      let armed = false;
+      $('aturBox').innerHTML =
+        '<div class="card !p-4 space-y-2"><div class="flex items-center justify-between"><div class="font-extrabold">👪 Profil keluarga</div><button type="button" class="goto text-xs font-bold text-brand-700" data-go="profil">' + (S.profile ? 'Lihat atau ubah' : 'Isi profil') + '</button></div><div class="text-sm text-stone-600">' + (S.profile ? esc(p.nama) + ' · ' + esc(p.anak) + ' (' + esc(p.usia) + ') · ' + esc(p.sapaan || 'pengasuh') : 'Belum diisi.') + '</div></div>' +
+        '<div class="card !p-4 space-y-2"><div class="flex items-center justify-between"><div class="font-extrabold">🤝 HP pengasuh</div><button type="button" class="goto text-xs font-bold text-brand-700" data-go="bersama">' + (conn ? 'Kelola' : 'Sambungkan') + '</button></div><div class="text-sm text-stone-600">' + (pg ? '✓ Tersambung dengan ' + esc(pg.nama || sapaanP()) + ', terakhir aktif ' + esc(jamAgo(pg.aktif)) + '.' : conn ? 'Kode sudah dibuat, menunggu pengasuh masuk.' : 'Belum tersambung.') + '</div></div>' +
+        '<div class="card !p-4 space-y-2"><div class="font-extrabold">🔔 Notifikasi</div><button type="button" id="aturNotif" class="btn btn-soft w-full !py-2 text-sm">Lihat semua notifikasi</button></div>' +
+        (S.profile ? '<div class="card !p-4 space-y-2"><div class="font-extrabold">☁️ Tersimpan otomatis</div><div class="text-xs text-stone-500">Profil, menu, jadwal, dan riwayat pertumbuhan tersimpan otomatis di server Seirama. Kalau ganti HP, cukup masukkan <b>kode pemulihan</b>.</div><div id="awanStatus" class="text-xs font-bold text-green-700">' + (S.sinkron && S.sinkron.awanT ? 'Tersimpan di server: ' + esc(jamAgo(S.sinkron.awanT)) : 'Menyimpan ke server...') + '</div><button type="button" id="aturKode" class="btn btn-soft w-full !py-2 text-sm">Salin kode pemulihan</button><div class="text-[11px] text-stone-500">Simpan kodenya di WhatsApp ke nomor sendiri. Jangan dibagikan ke orang lain.</div></div>' : '') +
+        '<div class="card !p-4 space-y-2"><div class="font-extrabold">📲 Pindah dari HP lain</div><div class="text-xs text-stone-500">Tempel kode pemulihan dari HP lama. Data di HP ini akan diganti.</div><input id="aturPulihIn" class="fld !mt-0 font-mono text-xs" placeholder="SEIRAMA2-..."><div id="aturPulihMsg" class="text-xs font-bold text-red-600"></div><button type="button" id="aturPulih" class="btn btn-soft w-full !py-2 text-sm">Pulihkan data</button></div>' +
+        '<div class="card !p-4 space-y-2"><div class="font-extrabold">💾 Cadangan manual</div><button type="button" id="aturBackup" class="btn btn-soft w-full !py-2 text-sm">Cadangkan atau pulihkan lewat kode panjang</button><button type="button" id="aturHapus" class="w-full text-xs underline text-stone-400 hover:text-red-600 pt-1">Hapus data di HP ini saja</button></div>' +
+        (S.sinkron && S.sinkron.kode ? '<div class="card !p-4 space-y-2 !border-red-200"><div class="font-extrabold text-red-700">🗑️ Hapus data keluarga dari server</div><div class="text-xs text-stone-500">Menghapus jadwal, ceklis, laporan, pesan, foto, dan cadangan Bunda dari server Seirama. HP pengasuh akan terputus. Tidak bisa dibatalkan.</div><button type="button" id="aturHapusServer" class="btn w-full !py-2 text-sm !bg-red-600">Hapus dari server</button></div>' : '') +
+        '<p class="text-[11px] text-stone-500 leading-relaxed px-1">🔒 Privasi: data keluarga disimpan di server Google Firebase milik Seirama dan hanya bisa dibuka HP yang memegang kode keluarga. Foto bukti dihapus otomatis setelah 30 hari. Data tidak dijual atau dibagikan ke pihak lain.</p>';
+      bindGoto($('aturBox'));
+      $('aturNotif').onclick = () => { const b = $('notifBell'); if(b) b.click(); };
+      $('aturBackup').onclick = () => openBackup();
+      if($('aturKode')) $('aturKode').onclick = () => { copyText(AWAN.kode()); AWAN.sekarang(); };
+      $('aturPulih').onclick = async () => { const b = $('aturPulih'); busy(b, 'Memulihkan...'); const err = await AWAN.pulihkan($('aturPulihIn').value); idle(b); if(err) $('aturPulihMsg').textContent = err; };
+      let armedS = false;
+      if($('aturHapusServer')) $('aturHapusServer').onclick = async () => { const b = $('aturHapusServer');
+        if(!armedS){ armedS = true; b.textContent = 'Yakin? Klik sekali lagi untuk menghapus permanen'; setTimeout(() => { armedS = false; if($('aturHapusServer')) $('aturHapusServer').textContent = 'Hapus dari server'; }, 5000); return; }
+        busy(b, 'Menghapus...'); try{ await AWAN.hapusServer(); toast('Data keluarga di server sudah dihapus'); setTimeout(() => location.reload(), 900); }catch(e){ idle(b); toast('Gagal menghapus. Cek internet, atau perbarui aturan keamanan Firebase.'); } };
+      $('aturHapus').onclick = () => { if(!armed){ armed = true; $('aturHapus').textContent = 'Klik sekali lagi untuk menghapus semua data di HP ini'; setTimeout(() => { armed = false; if($('aturHapus')) $('aturHapus').textContent = 'Hapus data di HP ini'; }, 4000); return; } $('resetData').click(); $('resetData').click(); };
+    };
+  }
+});
+
+/* --- menu bawah, tombol kembali --- */
+function renderBawah(aktif){
+  const el = $('bawah'); if(!el || S.peran === 'pengasuh') return;
+  const pesanBaru = pesanList(HARI_IBU).filter(m => m.dari === 'pengasuh' && m.t > (S.pesanBaca || 0)).length, ceklisBaru = NOTIF.belumKe('bersama');
+  const nBadge = { pesan:pesanBaru, home:ceklisBaru };
+  el.innerHTML = '<div class="max-w-3xl mx-auto grid grid-cols-4">' + GRUP.map(g => '<button type="button" data-g="' + g.id + '" class="relative flex flex-col items-center gap-0.5 py-2.5 text-[11px] font-bold ' + (aktif === g.id ? 'text-brand-700' : 'text-stone-500') + '" aria-current="' + (aktif === g.id ? 'page' : 'false') + '"><span class="text-xl leading-none ' + (aktif === g.id ? '' : 'grayscale opacity-70') + '">' + g.ic + '</span>' + g.t + (aktif === g.id ? '<span class="absolute top-0 inset-x-6 h-1 rounded-b-full bg-brand-500"></span>' : '') + (nBadge[g.id] ? '<span class="absolute top-1 right-[22%] min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] leading-[18px] text-center">' + (nBadge[g.id] > 9 ? '9+' : nBadge[g.id]) + '</span>' : '') + '</button>').join('') + '</div>';
+  el.querySelectorAll('button').forEach(b => b.onclick = () => go(b.dataset.g));
+}
+renderNav = function(){ renderBawah(INDUK[current] || 'home'); };
+const goAsli = go;
+go = function(tab){
+  goAsli(tab);
+  const g = INDUK[tab] || 'home', bar = $('kembaliBar'); renderBawah(g);
+  if(!bar) return;
+  const utama = ['home','pesan','rencana','grup-tumbuh'].indexOf(tab) >= 0;
+  const ke = tab === 'profil' ? (S.profile ? 'atur' : 'home') : g === 'atur' ? 'home' : g;
+  bar.className = utama ? 'hidden' : 'mb-3';
+  bar.innerHTML = utama ? '' : '<button type="button" class="text-sm font-bold text-brand-700 px-1">‹ ' + esc(ke === 'home' ? 'Hari Ini' : LABEL_INDUK[ke] || 'Kembali') + '</button>';
+  if(!utama) bar.firstChild.onclick = () => go(ke);
+};
+
+/* --- Beranda baru: "Hari Ini" --- */
+renderHome = function(){
+  const el = $('tab-home'), p = S.profile, hi = hariIni();
+  if(!p){
+    el.innerHTML = '<div class="home-hero rounded-3xl p-6 text-white space-y-2"><div class="hand text-3xl leading-tight">Selamat datang di Seirama</div><div class="text-sm opacity-95">' + esc(BRAND.tagline) + '</div></div>' +
+      '<div class="card space-y-3"><div class="font-extrabold">Mulai dalam 3 langkah</div>' +
+      [['1','Isi profil keluarga','Sekitar 5 menit, cukup sekali.','profil'],['2','Sambungkan HP pengasuh','Kirim kode lewat WhatsApp.',''],['3','Selesai','Pengasuh tinggal mencentang, Bunda memantau dari sini.','']].map((s, i) => '<div class="flex gap-3 items-start"><span class="w-7 h-7 rounded-full flex-none flex items-center justify-center text-sm font-extrabold ' + (i === 0 ? 'bg-brand-500 text-white' : 'bg-cream-100 text-stone-500') + '">' + s[0] + '</span><div><div class="font-bold text-sm">' + s[1] + '</div><div class="text-xs text-stone-500">' + s[2] + '</div></div></div>').join('') +
+      '<button type="button" class="goto btn w-full" data-go="profil">Mulai: isi profil</button><button type="button" class="goto w-full text-xs font-bold text-brand-700" data-go="atur">Pernah pakai Seirama di HP lain? Pulihkan data</button></div>';
+    bindGoto(el); return;
+  }
+  if(current === 'home' && NOTIF.belumKe('bersama')){ NOTIF.bacaSemua('bersama'); renderBawah('home'); }
+  const sp = sapaanP(), an = anakNama(), conn = !!(S.sinkron && (S.sinkron.sambung || S.sinkron.tersambung)), pg = (FAM_IBU || {}).pengasuh, muat = !!(S.sinkron && S.sinkron.tersambung) && FAM_IBU === null;
+  let h = '<div class="home-hero rounded-3xl p-5 text-white space-y-1"><div class="text-xs font-bold opacity-90">' + esc(hariDari(hi)) + ', ' + esc(tglIndo(hi)) + '</div><div class="hand text-3xl leading-tight">Halo, ' + esc(p.nama) + '!</div><div class="text-sm opacity-95">' + (pg || muat ? esc(an) + ' bersama ' + esc(sp) + ' hari ini' : 'Satu langkah lagi: sambungkan HP ' + esc(sp)) + '</div></div>';
+  if(muat){ h += '<div class="card !p-4 text-sm text-stone-500">Memuat kabar dari ' + esc(sp) + '...</div>'; }
+  else if(!pg){
+    h += '<div class="card space-y-3 !border-2 !border-brand-500"><div class="font-extrabold">🤝 Sambungkan HP ' + esc(sp) + '</div><div class="text-sm text-stone-600">' + (conn ? 'Kode sudah dibuat. Tunggu ' + esc(sp) + ' memasukkan kodenya, atau buat kode baru kalau sudah lewat 30 menit.' : 'Setelah tersambung, ' + esc(sp) + ' bisa mencentang jadwal harian dan mengirim kabar dari HP-nya.') + '</div><button type="button" class="goto btn w-full" data-go="bersama">' + (conn ? 'Lihat kode sambung' : 'Buat kode sambung') + '</button></div>';
+  } else {
+    const L = tugasHari(FAM_IBU, hi), c = HARI_IBU.ceklis || {}, r = ringkasCek(L, HARI_IBU);
+    const selesai = L.filter(x => (c[x.id] || {}).st === 'ya').sort((a, b) => c[b.id].t - c[a.id].t).slice(0, 3);
+    const tdk = L.filter(x => (c[x.id] || {}).st === 'belum'), lanjut = L.find(x => !(c[x.id] || {}).st);
+    h += '<div class="card space-y-3"><div class="flex items-center justify-between"><div class="font-extrabold">✅ Ceklis ' + esc(sp) + '</div><div class="text-sm font-extrabold text-green-700">' + r.ya + ' / ' + r.tot + '</div></div>' +
+      '<div class="w-full h-2.5 rounded-full bg-cream-100"><div class="h-2.5 rounded-full bg-green-500" style="width:' + (r.tot ? r.ya / r.tot * 100 : 0) + '%"></div></div>' +
+      (selesai.length ? '<div class="space-y-1">' + selesai.map(x => '<div class="text-sm flex gap-2"><span class="text-green-600">✓</span><span class="flex-1">' + esc(x.t) + (c[x.id].foto ? ' 📷' : '') + '</span><span class="text-[11px] text-stone-400">' + jamStr(c[x.id].t) + '</span></div>').join('') + '</div>' : '<div class="text-sm text-stone-500">Belum ada yang dicentang hari ini.</div>') +
+      (tdk.length ? '<div class="text-xs rounded-xl bg-red-50 border border-red-200 text-red-800 px-3 py-2">⚠️ ' + tdk.length + ' tidak terlaksana: ' + esc(tdk.map(x => x.t + ((c[x.id] || {}).alasan ? ' (' + c[x.id].alasan + ')' : '')).join(', ')) + '</div>' : '') +
+      (lanjut ? '<div class="text-xs text-stone-500">Berikutnya: <b>' + esc((lanjut.jam ? lanjut.jam + ' ' : '') + lanjut.t) + '</b></div>' : '') +
+      '<button type="button" class="goto btn btn-soft w-full !py-2 text-sm" data-go="bersama">Lihat ceklis lengkap</button></div>';
+    const P = pesanList(HARI_IBU), akhir = P[P.length - 1], baru = P.filter(m => m.dari === 'pengasuh' && m.t > (S.pesanBaca || 0)).length;
+    h += '<button type="button" class="goto card !p-4 w-full text-left flex items-center gap-3" data-go="pesan"><span class="text-2xl">💬</span><span class="flex-1 min-w-0"><span class="block font-extrabold">Pesan' + (baru ? ' <span class="ml-1 text-[11px] px-2 py-0.5 rounded-full bg-red-500 text-white">' + baru + ' baru</span>' : '') + '</span><span class="block text-sm text-stone-600 truncate">' + (akhir ? esc((akhir.dari === 'ibu' ? 'Bunda: ' : sp + ': ') + akhir.teks) : 'Belum ada pesan hari ini.') + '</span></span><span class="text-stone-300 text-xl">›</span></button>';
+    const l = HARI_IBU.laporan;
+    if(l && l.t) h += '<div class="card !p-4 space-y-1"><div class="font-extrabold text-sm">📒 Laporan ' + esc(sp) + ' · ' + jamStr(l.t) + '</div><div class="flex flex-wrap gap-1 text-xs">' + [['Makan siang', l.ms], ['Tidur siang', l.tidur != null ? l.tidur + ' mnt' : ''], ['Layar', l.layar != null ? l.layar + ' mnt' : ''], ['Suasana', l.mood]].filter(x => x[1]).map(x => '<span class="px-2 py-0.5 rounded-full bg-cream-100">' + esc(x[0]) + ': ' + esc(x[1]) + '</span>').join('') + '</div>' + (l.cat ? '<div class="text-xs text-stone-600">' + esc(l.cat) + '</div>' : '') + '</div>';
+  }
+  const d = (typeof detailKedepan === 'function' ? detailKedepan()[hi] : null) || {};
+  if(d.siang || d.stim) h += '<div class="card !p-4 space-y-2"><div class="font-extrabold text-sm">🍽️ Hari ini untuk ' + esc(an) + '</div>' + (d.siang ? '<button type="button" class="goto block w-full text-left text-sm" data-go="menu">🍲 Makan siang: <b>' + esc(d.siang.replace(/^Menu: /, '').split('. ')[0]) + '</b></button>' : '') + (d.stim ? '<button type="button" class="goto block w-full text-left text-sm" data-go="stimulasi">🎯 ' + esc(d.stim.split('. Alat')[0].replace('Kegiatan hari ini: ', 'Main: ')) + '</button>' : '') + '</div>';
+  const saran = [['menu','🍲','Buat menu 2 minggu','Menu dan daftar belanja dari bahan di rumah'], ['tumbuh','📏','Catat berat dan tinggi badan','Cek status gizi sesuai standar WHO'], ['kembang','🧩','Cek tumbuh kembang','5 menit, bisa dibantu pengasuh'], ['stimulasi','🎯','Buat planner main','Ide main 7 hari dari barang di rumah']].find(x => !fiturSelesai(x[0]));
+  if(saran) h += '<button type="button" class="goto card !p-4 w-full text-left flex items-center gap-3 !bg-amber-50 !border-amber-200" data-go="' + saran[0] + '"><span class="text-2xl">' + saran[1] + '</span><span class="flex-1"><span class="block text-[11px] font-bold text-amber-800">Saran berikutnya</span><span class="block font-extrabold text-sm">' + saran[2] + '</span><span class="block text-xs text-stone-600">' + saran[3] + '</span></span><span class="text-stone-300 text-xl">›</span></button>';
+  el.innerHTML = h; bindGoto(el);
+};
+
+/* ===================== Data Bunda tersimpan otomatis di server + kode pemulihan + hapus data server =====================
+   Disimpan di keluarga/{kode}/privat/{rahasia}. "rahasia" hanya ada di HP Bunda (tidak pernah dikirim ke HP pengasuh),
+   dan aturan keamanan Firestore melarang daftar isi folder privat, jadi pengasuh tidak bisa membacanya. */
+const AWAN = (() => {
+  let timer = null, terakhir = '';
+  const siapKode = () => { if(S.peran === 'pengasuh' || !S.profile) return false; S.sinkron = S.sinkron || {}; if(!S.sinkron.kode) S.sinkron.kode = acak(24); if(!S.sinkron.rahasia) S.sinkron.rahasia = acak(24); return true; };
+  const jalur = () => 'keluarga/' + S.sinkron.kode + '/privat/' + S.sinkron.rahasia;
+  const isi = () => { const o = Object.assign({}, S); delete o.notif; delete o.pgBaca; o.sinkron = Object.assign({}, S.sinkron || {}); delete o.sinkron.awanT; delete o.sinkron.sambung; return JSON.stringify(o); };
+  const unggah = async () => {
+    if(!siapKode()) return; const j = isi(); if(j === terakhir) return;
+    if(j.length > 900000){ console.warn('Data terlalu besar untuk server'); return; }
+    try{ await SYNC.put(jalur(), { json:j, t:Date.now(), v:2 }); terakhir = j; S.sinkron.awanT = Date.now(); saveLokal(); const st = document.getElementById('awanStatus'); if(st) st.textContent = 'Tersimpan di server: baru saja'; }catch(e){ console.warn('Simpan ke server gagal', e); }
+  };
+  return {
+    jadwalkan(){ if(S.peran === 'pengasuh' || !S.profile) return; clearTimeout(timer); timer = setTimeout(unggah, 5000); },
+    sekarang: unggah,
+    kode(){ siapKode(); saveLokal(); return 'SEIRAMA2-' + S.sinkron.kode + '-' + S.sinkron.rahasia; },
+    async pulihkan(teks){
+      const m = /SEIRAMA2-([a-z0-9]{24})-([a-z0-9]{24})/i.exec(String(teks || '').replace(/\s+/g, ''));
+      if(!m) return 'Kode tidak dikenali. Pastikan seluruh kode tersalin, diawali SEIRAMA2-';
+      let d = null; try{ d = await SYNC.get('keluarga/' + m[1] + '/privat/' + m[2]); }catch(e){ return 'Belum bisa terhubung ke server. Cek internet, lalu coba lagi.'; }
+      if(!d || !d.json) return 'Data tidak ditemukan di server. Mungkin sudah dihapus.';
+      let o = null; try{ o = JSON.parse(d.json); }catch(e){ return 'Data di server rusak.'; }
+      S = Object.assign({ profile:null, summary:'', shared:{}, data:{} }, o); S.sinkron = Object.assign({}, S.sinkron, { kode:m[1], rahasia:m[2] }); delete S.peran;
+      saveLokal(); location.reload(); return '';
+    },
+    async hapusServer(){
+      const k = S.sinkron && S.sinkron.kode; if(!k) return;
+      const base = 'keluarga/' + k;
+      await SYNC.del(base);   /* duluan: kalau aturan keamanan belum mengizinkan, berhenti di sini tanpa menghapus sebagian */
+      await SYNC.hapusKoleksi(base + '/hari'); await SYNC.hapusKoleksi(base + '/foto');
+      if(S.sinkron.rahasia) await SYNC.del(base + '/privat/' + S.sinkron.rahasia);
+      S.sinkron = {}; delete S.notif; saveLokal();
+    }
+  };
+})();
+const saveLokal = save;
+save = function(){ saveLokal(); AWAN.jadwalkan(); };
 
 /* Urutan menu */
 const URUT = ['kartu','bersama','pesan','menu','tumbuh','kembang','stimulasi','jurnal','rapor'];
